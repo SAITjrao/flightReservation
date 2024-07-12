@@ -1,0 +1,214 @@
+﻿@page "/Flights"
+@using flightReservation.Data
+
+<div id="container">
+    <h3>Flight Finder</h3>
+    <label class="fl-finder">From:</label>
+    <select @onchange="GetFrom">
+        <option selected="selected" disabled>Select</option>
+        @foreach (var airport in airports)
+        {
+            <option value="@airport.AirportCode">@airport.AirportCode</option>
+        }
+    </select>
+    <label class="fl-finder">To:</label>
+    <select @onchange="GetTo">
+        <option selected="selected" disabled>Select</option>
+        @foreach (var airport in airports)
+        {
+            <option value="@airport.AirportCode">@airport.AirportCode</option>
+        }
+    </select>
+    <label class="fl-finder">Day:</label>
+    <select @onchange="GetDay">
+        <option selected="selected" disabled>Select</option>
+        @foreach (string day in daysOfWeek)
+        {
+            <option value=@day>@day</option>
+        }
+    </select>
+    <br />
+    <button @onclick="FindFlights">Find Flights</button>
+
+    <h3>Flights</h3>
+    <select @onchange="getFlightInfo">
+        <option selected="selected" disabled>Select</option>
+        @foreach (var flight in matchedFlights)
+        {
+            <option value="@flight.FlightCode">@flight.ToString()</option>
+        }
+    </select>
+    
+    <span id="failure">@failureMessage</span>
+    <span id="success">@successMessage</span>
+   
+
+    <h3>Reserve</h3>
+    <label>Flight Code:</label>
+    <input id="flightCode" type="text" readonly value="@selectedFlight?.FlightCode"/> 
+    <br />
+    <label>Airline:</label>
+    <input id="flightAirline" type="text" readonly value="@selectedFlight?.FlightAirline" />
+    <br />
+    <label>Day:</label>
+    <input id="flightDay" type="text" readonly value="@selectedFlight?.FlightDay" />
+    <br />
+    <label>Time:</label>
+    <input id="flightTime" type="text" readonly value="@selectedFlight?.FlightTime" />
+    <br />
+    <label>Cost:</label>
+    <input id="flightCost" type="text" readonly value="@selectedFlight?.FlightCost"/>
+    <br />
+    <div>
+        @*validates passenger name and citizenship are entered before making a reservation*@
+        <EditForm Model="@validateReservation" OnValidSubmit="makeReservation"> 
+            <DataAnnotationsValidator />
+            <label>Name:</label>
+            <input id="name" @bind-value="validateReservation.PassengerName" />
+            <br />
+            <label>Citizenship:</label>
+            <input id="citizenship" @bind-value="validateReservation.PassengerCitizenship" />
+            <ValidationSummary />
+            <br />
+            <button type="submit">Make Reservation</button>
+            <p class="message">@validateReservation.ReservationCode </p>
+        </EditForm>
+    </div>
+    <h3>Search Reservation</h3>
+    <div>
+        <label>Reservation Code:</label>
+        <input type="text" @bind-value="searchForCode" />
+        <br />
+        <label>Airline:</label>
+        <input type="text" />
+        <br />
+        <label>Passenger Name:</label>
+        <input type="text" @bind-value="searchForName"/>
+        <br />
+        <button @onclick="FindReservation">Find Reservation</button>
+        <select>
+            @foreach (var reserve in matchedReservations)
+            {
+                <option value="@reserve.ToString()">@reserve.ToString()</option>
+            }
+        </select>
+    </div>
+</div>
+@code{
+    AirportManager am = new AirportManager();
+    FlightManager fm = new FlightManager();
+    ReservationManager rm = new ReservationManager();
+    List<string> daysOfWeek = new List<string>
+    {
+        "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+    };
+    List<Airport> airports = AirportManager.GetAirports(); //populate list of all airports
+    List<Flight> flights = FlightManager.GetFlights(); //populate list of all flights
+    List<Flight> matchedFlights = new List<Flight>(); //initialize list to store found flights
+    List<FlightReservation> reservationList = new List<FlightReservation>(); //initialize list to store reservations
+    List<FlightReservation> matchedReservations = new List<FlightReservation>(); //initialize list to store found reservations 
+
+    private ReservationManager validateReservation = new ReservationManager();
+
+    //variables to store user input
+    private string findFrom;
+    private string findTo;
+    private string findDay;
+    Flight selectedFlight;
+
+    private string searchForName;
+    private string searchForCode;
+    private string successMessage; //flight found message
+    private string failureMessage; //flight found not found message
+
+    //get origin airport selected by user
+    private void GetFrom(ChangeEventArgs e){
+        findFrom = e.Value.ToString();
+    }
+
+    //get destination airport selected by user
+    private void GetTo(ChangeEventArgs e)
+    {
+        findTo = e.Value.ToString();
+    }
+
+    //get flight day selected by user
+    private void GetDay(ChangeEventArgs e)
+    {
+        findDay = e.Value.ToString();
+    }
+
+    //find matching flights based on user input & add to a list
+    private void FindFlights()
+    {
+        failureMessage = ""; //clear messages
+        successMessage = ""; 
+        matchedFlights.Clear(); //clear found flights
+        validateReservation.FlightCode = ""; //clear previously selected flight if any
+
+        foreach(var flight in flights)
+        {
+            if (findFrom == flight.FlightOrigin
+                && findTo == flight.FlightDest
+                && findDay == flight.FlightDay)
+            {
+                matchedFlights.Add(flight); //add found flight to a list of matched flights
+            }
+        }
+        bool isEmpty = !matchedFlights.Any(); //check if matchedFlights list is empty
+        if (isEmpty)
+        {
+            failureMessage = "No Flights Found!";
+        }
+        else
+        {
+            successMessage = "Flights Found!";
+        }
+    }
+
+    //get the flight selected by user
+    private void getFlightInfo(ChangeEventArgs e)
+    {
+        string flightCode = e.Value.ToString();
+        selectedFlight = flights.First(f => f.FlightCode == flightCode);
+        validateReservation.FlightCode = selectedFlight.FlightCode;
+    }
+
+    //make a reservation with the selected flight, user's name and citizenship
+    private void makeReservation()
+    {
+        FlightReservation reservation = new FlightReservation(); //create a new reservation obj
+        validateReservation.ReservationCode = ReservationManager.generateReservationCode(); // generate a random reservation code
+
+        reservation.FlightCode = selectedFlight.FlightCode;
+        reservation.AirlineName = selectedFlight.FlightAirline;
+        reservation.AirportOrigin = selectedFlight.FlightOrigin;
+        reservation.AirportDest = selectedFlight.FlightDest;
+        reservation.FlightDay = selectedFlight.FlightDay;
+        reservation.FlightTime = selectedFlight.FlightTime;
+        reservation.FlightCost = Convert.ToString(selectedFlight.FlightCost);
+        reservation.PassengerName = validateReservation.PassengerName;
+        reservation.PassengerCitizenship = validateReservation.PassengerCitizenship;
+        reservation.ReservationID = validateReservation.ReservationCode;
+
+        reservationList.Add(reservation);
+    }
+
+    //find reservations that users have made
+    private void FindReservation()
+    {
+        matchedReservations.Clear(); //clear list of foundReservations when clicking the button again
+        foreach(var reservation in reservationList)
+        {
+            //search if reservation code or name have any matches
+            if (searchForCode == reservation.ReservationID
+                || searchForName == reservation.PassengerName)
+            {
+                matchedReservations.Add(reservation);
+            }
+        }
+        
+    }
+
+
+}

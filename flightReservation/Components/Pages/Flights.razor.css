@@ -1,0 +1,67 @@
+h3 {
+    text-align: center;
+    padding-top: 5px;
+}
+
+.container {
+    background-color: whitesmoke;
+    margin-left: 10px;
+    margin-right: auto;
+    width: 100%;
+    
+}
+div {
+    padding-bottom: 10px;
+}
+
+input {
+    width: 300px;
+}
+
+select {
+    width: 100%;
+    margin-top: 0;
+    padding-top: 2px;
+}
+
+label {
+    display: inline-block;
+    width: 150px;
+    padding-bottom: 10px;
+    padding-left: 15px;
+}
+
+.fl-finder {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+button {
+    display: block;
+    width: 250px;
+    background-color: green;
+    color: white;
+    border-radius: 5px;
+    margin: auto;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.message {
+    text-align: center;
+    display: block;
+    margin: auto;
+    color:darkgreen;
+}
+
+#success {
+    color: mediumseagreen;
+    text-align: center;
+    display: block;
+}
+
+#failure {
+    color: red;
+    text-align: center;
+    display: block;
+}
